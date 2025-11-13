@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Live IV Dashboard</title>
+<style>
+    table { border-collapse: collapse; width: 95%; margin: 20px auto; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { cursor: pointer; background-color: #f2f2f2; }
+    .up { color: green; }
+    .down { color: red; }
+    .neutral { color: gray; }
+    .highlight-up { background-color: #e6ffe6; }
+    .highlight-down { background-color: #ffe6e6; }
+</style>
+</head>
+<body>
+<h2 style="text-align:center;">Live IV Dashboard</h2>
+
+<div style="width:95%; margin:auto; text-align:right;">
+    Sort by Straddle IV:
+    <button onclick="setSort('asc')">Lowest</button>
+    <button onclick="setSort('desc')">Highest</button>
+</div>
+
+<table id="iv-table">
+    <thead>
+        <tr>
+            <th>Underlying</th>
+            <th>Spot Price</th>
+            <th>CE IV (%)</th>
+            <th>Prev CE IV</th>
+            <th>PE IV (%)</th>
+            <th>Prev PE IV</th>
+            <th>Straddle IV (%)</th>
+            <th>Prev Straddle IV</th>
+            <th>Trend</th>
+            <th>Expiry</th>
+            <th>Timestamp</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+    let sortOrder = "desc";
+
+    function setSort(order) {
+        sortOrder = order;
+        fetchAndRender();
+    }
+
+    function formatValue(val) {
+        return val !== null && val !== undefined ? val.toFixed(2) : "-";
+    }
+
+    function compareHighlight(curr, prev) {
+        if (curr === null || prev === null || curr === undefined || prev === undefined) return '';
+        if (curr > prev) return 'highlight-up';
+        if (curr < prev) return 'highlight-down';
+        return '';
+    }
+
+    async function fetchAndRender() {
+        const response = await fetch(`/api/ivdata?sort=${sortOrder}`);
+        const data = await response.json();
+
+        const tbody = document.querySelector("#iv-table tbody");
+        tbody.innerHTML = "";
+
+        data.forEach(row => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${row.underlying}</td>
+                <td>${row.spot.toFixed(2)}</td>
+                <td class="${compareHighlight(row.ce_iv_pct, row.prev_ce_iv)}">${formatValue(row.ce_iv_pct)}</td>
+                <td>${formatValue(row.prev_ce_iv)}</td>
+                <td class="${compareHighlight(row.pe_iv_pct, row.prev_pe_iv)}">${formatValue(row.pe_iv_pct)}</td>
+                <td>${formatValue(row.prev_pe_iv)}</td>
+                <td class="${compareHighlight(row.straddle_iv, row.prev_straddle_iv)}">${formatValue(row.straddle_iv)}</td>
+                <td>${formatValue(row.prev_straddle_iv)}</td>
+                <td class="${row.trend === 1 ? 'up' : row.trend === -1 ? 'down' : 'neutral'}">
+                    ${row.trend === 1 ? '▲' : row.trend === -1 ? '▼' : '–'}
+                </td>
+                <td>${row.expiry}</td>
+                <td>${new Date(row.timestamp).toLocaleTimeString()}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    fetchAndRender();
+    setInterval(fetchAndRender, 2000);
+</script>
+</body>
+</html>

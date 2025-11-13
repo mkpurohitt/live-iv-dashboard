@@ -1,0 +1,6 @@
+Flask
+pandas
+kiteconnect
+scipy
+APScheduler
+numpy
